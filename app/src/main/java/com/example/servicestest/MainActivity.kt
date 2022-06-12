@@ -4,12 +4,12 @@ import android.app.job.JobInfo
 import android.app.job.JobScheduler
 import android.app.job.JobWorkItem
 import android.content.ComponentName
-import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.work.ExistingWorkPolicy
+import androidx.work.WorkManager
 import com.example.servicestest.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -18,7 +18,6 @@ class MainActivity : AppCompatActivity() {
         ActivityMainBinding.inflate(layoutInflater)
     }
     private var page = 0
-
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,12 +50,26 @@ class MainActivity : AppCompatActivity() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val intent = MyJobService.newIntent(page++)
                 jobScheduler.enqueue(jobInfo, JobWorkItem(intent))
-            } else{ //если SDK меньше API 26, то используем всместо JobScheduler IntentService
-             startService(MyIntentService2.newIntent(this, page++))
+            } else { //если SDK меньше API 26, то используем всместо JobScheduler IntentService
+                startService(MyIntentService2.newIntent(this, page++))
             }
         }
         binding.jobIntentService.setOnClickListener {
-            MyJobIntentService.enqueue(this,page++)
+            MyJobIntentService.enqueue(this, page++)
+        }
+        binding.workManager.setOnClickListener {
+            val workManager =
+                WorkManager.getInstance(applicationContext)//чтоб не было утечек памяти
+            workManager.enqueueUniqueWork( // если исп-ть enqueue то запустив 10 воркеров они все
+                                          // будут выпол-ся. В нашем случае будет выппол-ся 1 воркер
+                MyWorker.WORK_NAME,
+                ExistingWorkPolicy.APPEND, //если воркер был запущет, то
+                // APPEND новый воркер будет добавлен в очередь
+                // KEEP новый воркер проигнорируется
+                // REPLACE старый воркер замениться новым
+
+                MyWorker.makeRequest(page++) // через OneTimeWorkRequest передаем page и ограничения
+            )
         }
     }
 }

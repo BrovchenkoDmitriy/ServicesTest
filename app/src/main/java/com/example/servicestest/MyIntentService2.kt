@@ -3,7 +3,6 @@ package com.example.servicestest
 import android.app.IntentService
 import android.content.Context
 import android.content.Intent
-import android.os.IBinder
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
