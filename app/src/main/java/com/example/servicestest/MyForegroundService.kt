@@ -1,6 +1,5 @@
 package com.example.servicestest
 
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
@@ -16,25 +15,36 @@ class MyForegroundService : Service() {
 
     private val scope = CoroutineScope(Dispatchers.Main)
 
+    private val notificationBuilder by lazy {
+        createNotificationBuilder()
+    }
+
+    private val notificationManager by lazy {
+        getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+    }
+
     override fun onCreate() {
         super.onCreate()
         log("onCreate")
         createNotificationChannel()
-        val notification = createNotification()
-        startForeground(1, notification)
+        startForeground(NOTIFICATION_ID, notificationBuilder.build())
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         log("onStartCommand")
         scope.launch {
-            for (i in 0..10) {
+            for (i in 0..100 step 5) {
                 delay(1000)
+                val notification = notificationBuilder
+                    .setProgress(100, i, false)
+                    .setOnlyAlertOnce(true) //звуковое уведомление придет только один раз
+                    .build()
+                notificationManager.notify(NOTIFICATION_ID, notification)
                 log("Timer $i")
             }
             stopSelf()
         }
         return START_STICKY
-        //super.onStartCommand(intent, flags, startId)
     }
 
     override fun onDestroy() {
@@ -43,17 +53,8 @@ class MyForegroundService : Service() {
         log("onDestroy")
     }
 
-
     override fun onBind(intent: Intent?): IBinder? {
         TODO("Not yet implemented")
-    }
-
-    companion object {
-        private const val CHANNEL_ID = "channel_id"
-        private const val CHANNEL_NAME = "channel_name"
-        fun newIntent(context: Context): Intent {
-            return Intent(context, MyForegroundService::class.java)
-        }
     }
 
     private fun log(message: String) {
@@ -62,7 +63,7 @@ class MyForegroundService : Service() {
     }
 
     private fun createNotificationChannel() {
-        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationChannel = NotificationChannel(
                 CHANNEL_ID,
@@ -73,11 +74,20 @@ class MyForegroundService : Service() {
         }
     }
 
-    private fun createNotification(): Notification {
-        return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Title")
-            .setContentText("Text")
-            .setSmallIcon(R.drawable.ic_launcher_background)
-            .build()
+    private fun createNotificationBuilder() = NotificationCompat.Builder(this, CHANNEL_ID)
+        .setContentTitle("Title")
+        .setContentText("Text")
+        .setSmallIcon(R.drawable.ic_launcher_background)
+        .setProgress(100, 0, false)
+
+
+    companion object {
+        private const val CHANNEL_ID = "channel_id"
+        private const val CHANNEL_NAME = "channel_name"
+        private const val NOTIFICATION_ID = 1
+        fun newIntent(context: Context): Intent {
+            return Intent(context, MyForegroundService::class.java)
+        }
     }
+
 }

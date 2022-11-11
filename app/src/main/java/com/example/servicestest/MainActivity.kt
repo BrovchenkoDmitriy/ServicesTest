@@ -23,25 +23,29 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
+
         binding.simpleService.setOnClickListener {
             startService(MyService.newIntent(this))
         }
+
         binding.foregroundService.setOnClickListener {
             ContextCompat.startForegroundService(
                 this,
                 MyForegroundService.newIntent(this)
             )
         }
+
         binding.intentService.setOnClickListener {
             ContextCompat.startForegroundService(
                 this,
                 MyIntentService.newIntent(this)
             )
         }
+
         binding.jobScheduler.setOnClickListener {
             val componentName = ComponentName(this, MyJobService::class.java)
             val jobInfo = JobInfo.Builder(MyJobService.JOB_ID, componentName)
-                .setRequiresCharging(true) //ограничение устройство должно быть на зарядке
+                .setRequiresCharging(true) //ограничение устройство должно быть на зарядке. НЕ РАБОТАЕТ ДАЖЕ НА ЗАРЯДКЕ. ПОЧЕМУ?
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY) //ограничение устройство должно быть в сети
                 //.setPersisted(true) // сервис будет перезапущен даже при перезагрузке устройства  (не работает с очередью сервисов)
                 .build()
@@ -54,9 +58,11 @@ class MainActivity : AppCompatActivity() {
                 startService(MyIntentService2.newIntent(this, page++))
             }
         }
+
         binding.jobIntentService.setOnClickListener {
             MyJobIntentService.enqueue(this, page++)
         }
+
         binding.workManager.setOnClickListener {
             val workManager =
                 WorkManager.getInstance(applicationContext)//чтоб не было утечек памяти
