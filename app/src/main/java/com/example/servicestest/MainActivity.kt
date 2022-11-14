@@ -4,8 +4,10 @@ import android.app.job.JobInfo
 import android.app.job.JobScheduler
 import android.app.job.JobWorkItem
 import android.content.ComponentName
+import android.content.ServiceConnection
 import android.os.Build
 import android.os.Bundle
+import android.os.IBinder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.work.ExistingWorkPolicy
@@ -17,7 +19,25 @@ class MainActivity : AppCompatActivity() {
     private val binding by lazy {
         ActivityMainBinding.inflate(layoutInflater)
     }
+
     private var page = 0
+
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            val binder = (service as? MyForegroundService.LocalBinder) ?: return
+            // as? означает если приведение возможно, то ок.
+            // Иначе null, и в этом случае с помощью оператора элвиса мы выйдем из метода
+            val foregroundService = binder.getService()
+            foregroundService.onProgressChanged = {
+                binding.progressBarLoading.progress = it
+            }
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+
+        }
+
+    }
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,7 +87,7 @@ class MainActivity : AppCompatActivity() {
             val workManager =
                 WorkManager.getInstance(applicationContext)//чтоб не было утечек памяти
             workManager.enqueueUniqueWork( // если исп-ть enqueue то запустив 10 воркеров они все
-                                          // будут выпол-ся. В нашем случае будет выппол-ся 1 воркер
+                // будут выпол-ся. В нашем случае будет выппол-ся 1 воркер
                 MyWorker.WORK_NAME,
                 ExistingWorkPolicy.APPEND, //если воркер был запущет, то
                 // APPEND новый воркер будет добавлен в очередь
@@ -77,5 +97,19 @@ class MainActivity : AppCompatActivity() {
                 MyWorker.makeRequest(page++) // через OneTimeWorkRequest передаем page и ограничения
             )
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        bindService(
+            MyForegroundService.newIntent(this),
+            serviceConnection,
+            0
+            )
+    }
+
+    override fun onStop() {
+        super.onStop()
+        unbindService(serviceConnection)
     }
 }
