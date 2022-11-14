@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
@@ -23,6 +24,8 @@ class MyForegroundService : Service() {
         getSystemService(NOTIFICATION_SERVICE) as NotificationManager
     }
 
+    var onProgressChanged: ((Int) -> Unit)? = null //слушатель чтоб отслеживать состояние прогресса
+
     override fun onCreate() {
         super.onCreate()
         log("onCreate")
@@ -40,6 +43,7 @@ class MyForegroundService : Service() {
                     .setOnlyAlertOnce(true) //звуковое уведомление придет только один раз
                     .build()
                 notificationManager.notify(NOTIFICATION_ID, notification)
+                onProgressChanged?.invoke(i) //передаем значение i в слушатель onProgressChanged
                 log("Timer $i")
             }
             stopSelf()
@@ -53,8 +57,9 @@ class MyForegroundService : Service() {
         log("onDestroy")
     }
 
-    override fun onBind(intent: Intent?): IBinder? {
-        TODO("Not yet implemented")
+    override fun onBind(intent: Intent?): IBinder {
+        log("onBind")
+        return LocalBinder()
     }
 
     private fun log(message: String) {
@@ -80,6 +85,10 @@ class MyForegroundService : Service() {
         .setSmallIcon(R.drawable.ic_launcher_background)
         .setProgress(100, 0, false)
 
+
+    inner class LocalBinder : Binder() {
+        fun getService() = this@MyForegroundService
+    }
 
     companion object {
         private const val CHANNEL_ID = "channel_id"
